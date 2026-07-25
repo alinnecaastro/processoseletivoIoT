@@ -2,49 +2,91 @@ from machine import ADC, Pin
 from time import sleep_ms, ticks_ms, ticks_diff
 
 
-# Configuração do LDR
-ldr = ADC(Pin(34))
+# ---------------------------------------------------------
+# Configuração dos pinos
+# ---------------------------------------------------------
+
+PINO_LDR = 34
+PINO_BOTAO_RESET = 27
+
+
+# Sensor de luminosidade
+ldr = ADC(Pin(PINO_LDR))
 ldr.atten(ADC.ATTN_11DB)
 
 
-# Limites observados no Wokwi:
-# 800 lux gera aproximadamente 773 no ADC
-# 50 lux gera aproximadamente 2531 no ADC
+# Botão ligado ao GND.
+# Solto = 1
+# Pressionado = 0
+botao_reset = Pin(
+    PINO_BOTAO_RESET,
+    Pin.IN,
+    Pin.PULL_UP
+)
+
+
+# ---------------------------------------------------------
+# Configurações do sistema
+# ---------------------------------------------------------
+
+# Valores medidos no Wokwi:
+# 800 lux -> aproximadamente 773 no ADC
+# 50 lux  -> aproximadamente 2531 no ADC
 LIMITE_BLOQUEADO = 2000
 LIMITE_LIVRE = 1000
 
-# Tempo necessário para considerar micro-parada
+# Cinco segundos para considerar micro-parada
 TEMPO_MICRO_PARADA_MS = 5000
 
+# Tempo para evitar múltiplas leituras do botão
+TEMPO_DEBOUNCE_MS = 50
+
+
+# ---------------------------------------------------------
+# Variáveis do sistema
+# ---------------------------------------------------------
 
 contador = 0
-sensor_bloqueado = False
 
+sensor_bloqueado = False
 tempo_inicio_bloqueio = 0
 alerta_emitido = False
+
+estado_anterior_botao = 1
+tempo_ultima_mudanca_botao = 0
 
 
 print("Contador de Producao Inicializado")
 
 
+# ---------------------------------------------------------
+# Loop principal
+# ---------------------------------------------------------
+
 while True:
-    valor = ldr.read()
+    agora = ticks_ms()
+    valor_ldr = ldr.read()
+    estado_botao = botao_reset.value()
+
+    # -----------------------------------------------------
+    # Cenários 1 e 2: sensor de luminosidade
+    # -----------------------------------------------------
 
     # A peça entrou e bloqueou a luz
-    if valor > LIMITE_BLOQUEADO:
+    if valor_ldr > LIMITE_BLOQUEADO:
 
-        # Executa somente no momento em que o bloqueio começa
+        # Executa apenas quando o bloqueio começa
         if not sensor_bloqueado:
             sensor_bloqueado = True
-            tempo_inicio_bloqueio = ticks_ms()
+            tempo_inicio_bloqueio = agora
             alerta_emitido = False
 
-        # Verifica se a peça ficou parada por 5 segundos
         tempo_bloqueado = ticks_diff(
-            ticks_ms(),
+            agora,
             tempo_inicio_bloqueio
         )
 
+        # Cenário 2: peça parada por cinco segundos
         if (
             tempo_bloqueado >= TEMPO_MICRO_PARADA_MS
             and not alerta_emitido
@@ -52,12 +94,49 @@ while True:
             print("Alerta: Micro-parada detectada!")
             alerta_emitido = True
 
-    # A peça saiu e a luz voltou
-    elif valor < LIMITE_LIVRE and sensor_bloqueado:
+    # Cenário 1: a peça saiu e a luz voltou
+    elif valor_ldr < LIMITE_LIVRE and sensor_bloqueado:
         contador += 1
+
         sensor_bloqueado = False
+        tempo_inicio_bloqueio = 0
         alerta_emitido = False
 
-        print(f"Peca detectada! Total: {contador}")
+        print("Peca detectada! Total:", contador)
+
+    # -----------------------------------------------------
+    # Cenário 3: botão de reset
+    # -----------------------------------------------------
+
+    # Detecta mudança no estado do botão
+    if estado_botao != estado_anterior_botao:
+        tempo_ultima_mudanca_botao = agora
+        estado_anterior_botao = estado_botao
+
+    # Confirma que o botão permaneceu pressionado
+    if (
+        estado_botao == 0
+        and ticks_diff(
+            agora,
+            tempo_ultima_mudanca_botao
+        ) >= TEMPO_DEBOUNCE_MS
+    ):
+        contador = 0
+
+        sensor_bloqueado = False
+        tempo_inicio_bloqueio = 0
+        alerta_emitido = False
+
+        print(
+            "Turno resetado com sucesso. "
+            "Contadores zerados."
+        )
+
+        # Aguarda o botão ser solto para não repetir o reset
+        while botao_reset.value() == 0:
+            sleep_ms(10)
+
+        estado_anterior_botao = 1
+        tempo_ultima_mudanca_botao = ticks_ms()
 
     sleep_ms(20)
