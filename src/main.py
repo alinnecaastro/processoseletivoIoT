@@ -120,8 +120,7 @@ while True:
             alerta_emitido = False
 
             print(
-                "Turno resetado com sucesso. "
-                "Contadores zerados."
+                "Turno resetado com sucesso. Contadores zerados."
             )
 
         botao_foi_pressionado = False
