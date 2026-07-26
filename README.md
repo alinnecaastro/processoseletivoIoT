@@ -8,7 +8,7 @@ Este projeto simula um sistema embarcado para monitoramento de uma linha de prod
 
 ## Arquitetura do Sistema Embarcado
 
-O `main.py` executa um loop contínuo que lê o sensor de luminosidade e o botão de reset. Quando o LDR identifica o bloqueio e a liberação da luz, uma peça é contabilizada. Se o bloqueio permanecer por cinco segundos, o sistema emite um alerta de micro-parada.
+O script `main.py`, desenvolvido em MicroPython, executa um loop contínuo que lê o sensor de luminosidade e o botão de reset. Quando o LDR identifica o bloqueio e a liberação da luz, uma peça é contabilizada. Se o bloqueio permanecer por cinco segundos, o sistema emite um alerta de micro-parada.
 
 O botão é monitorado para detectar quando foi pressionado e solto. Após a liberação, os contadores e estados do sistema são zerados.
 
@@ -25,8 +25,8 @@ O ESP32 centraliza o processamento, recebe os sinais do LDR e do botão e exibe 
 ## Componentes Utilizados na Simulação
 
 * **ESP32 DevKit V4:** placa microcontroladora responsável por executar o programa, processar as leituras do sensor e controlar a lógica do sistema.
-* **Sensor de Luminosidade (LDR):** utilizado para simular a passagem das peças na esteira. A variação da luminosidade permite realizar a contagem de peças e detectar micro-paradas.
-* **Botão (Push Button):** utilizado para realizar o reset manual do turno, zerando os contadores e reiniciando o estado do sistema.
+* **Sensor de Luminosidade (LDR):** conectado ao pino analógico GPIO 34, é utilizado para simular a passagem das peças na esteira. A variação da luminosidade permite realizar a contagem e detectar falhas de fluxo.
+* **Botão (Push Button):** conectado ao pino digital GPIO 27, é utilizado para realizar o reset manual do turno, zerando os contadores e reiniciando o estado do sistema.
 * **Monitor Serial:** exibe as mensagens de inicialização, contagem de peças, alerta de micro-parada e confirmação do reset.
 
 ## Decisões Técnicas Relevantes
