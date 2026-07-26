@@ -45,3 +45,31 @@ Todos os requisitos propostos foram atendidos, incluindo os três cenários de t
 ## Comentários Adicionais
 
 Durante o desenvolvimento, a principal dificuldade foi compreender o funcionamento da simulação no Wokwi e ajustar o código para atender corretamente aos testes automatizados. Também foi necessário validar os valores do sensor de luminosidade para garantir o comportamento esperado.
+
+## Como executar o projeto
+
+### Pré-requisitos
+
+- Git
+- Docker Desktop
+- Visual Studio Code
+- Extensão Dev Containers
+
+### Passos
+
+```bash
+git clone https://github.com/alinnecaastro/processoseletivoIoT.git
+cd processoseletivoIoT
+code .
+```
+
+No Visual Studio Code:
+
+1. Pressione `F1`.
+2. Selecione `Dev Containers: Reopen in Container`.
+3. Aguarde a criação e abertura do ambiente.
+4. Abra o arquivo `diagram.json`.
+5. Pressione `F1` novamente.
+6. Selecione `Wokwi: Start Simulator`.
+
+> Importante: a simulação deve ser iniciada dentro do Dev Container. Fora dele, o arquivo `diagram.json` poderá abrir apenas como código JSON.
