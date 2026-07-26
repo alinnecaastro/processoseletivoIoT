@@ -13,8 +13,8 @@
     {
       "type": "wokwi-photoresistor-sensor",
       "id": "ldr1",
-      "top": -90,
-      "left": 250,
+      "top": -92.8,
+      "left": 250.4,
       "attrs": {
         "lux": "800"
       }
@@ -22,12 +22,11 @@
     {
       "type": "wokwi-pushbutton",
       "id": "btn1",
-      "top": 160,
+      "top": 135,
       "left": 250,
       "attrs": {
-        "color": "green",
-        "label": "RESET",
-        "bounce": "0"
+        "color": "red",
+        "label": "RESET"
       }
     }
   ],
@@ -69,10 +68,11 @@
       []
     ],
     [
-      "btn1:2.l",
+      "btn1:2.r",
       "esp:GND.2",
       "black",
       []
     ]
-  ]
+  ],
+  "dependencies": {}
 }
