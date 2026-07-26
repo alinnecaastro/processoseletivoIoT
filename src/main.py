@@ -3,7 +3,7 @@ from time import sleep_ms, ticks_ms, ticks_diff
 
 
 # ---------------------------------------------------------
-# Configuração dos pinos
+# Configuração de hardware
 # ---------------------------------------------------------
 
 PINO_LDR = 34
@@ -23,7 +23,7 @@ botao_reset = Pin(
 
 
 # ---------------------------------------------------------
-# Configurações
+# Configurações do sistema
 # ---------------------------------------------------------
 
 LIMITE_BLOQUEADO = 2000
@@ -31,98 +31,175 @@ LIMITE_LIVRE = 1000
 
 TEMPO_MICRO_PARADA_MS = 5000
 TEMPO_DEBOUNCE_MS = 50
+INTERVALO_LOOP_MS = 20
 
 
 # ---------------------------------------------------------
-# Variáveis
+# Estados do sensor
 # ---------------------------------------------------------
 
-contador = 0
-
-sensor_bloqueado = False
-tempo_inicio_bloqueio = 0
-alerta_emitido = False
-
-botao_foi_pressionado = False
-tempo_pressao_botao = 0
+ESTADO_SENSOR_LIVRE = 0
+ESTADO_SENSOR_BLOQUEADO = 1
 
 
-print("Contador de Producao Inicializado")
+class MonitorProducao:
+    """
+    Controla a contagem de peças, a identificação de microparadas
+    e o reset manual do turno.
+    """
 
+    def __init__(self, sensor_ldr, botao):
+        self.sensor_ldr = sensor_ldr
+        self.botao = botao
 
-# ---------------------------------------------------------
-# Loop principal
-# ---------------------------------------------------------
+        self.contador_pecas = 0
 
-while True:
-    agora = ticks_ms()
+        self.estado_sensor = ESTADO_SENSOR_LIVRE
+        self.tempo_inicio_bloqueio = 0
+        self.alerta_emitido = False
 
-    valor_ldr = ldr.read()
-    estado_botao = botao_reset.value()
+        self.botao_foi_pressionado = False
+        self.tempo_pressao_botao = 0
 
-    # -----------------------------------------------------
-    # Cenários 1 e 2: leitura do sensor
-    # -----------------------------------------------------
+    def iniciar_bloqueio(self, agora):
+        """
+        Registra a transição do sensor livre para bloqueado.
+        """
 
-    if valor_ldr > LIMITE_BLOQUEADO:
+        self.estado_sensor = ESTADO_SENSOR_BLOQUEADO
+        self.tempo_inicio_bloqueio = agora
+        self.alerta_emitido = False
 
-        if not sensor_bloqueado:
-            sensor_bloqueado = True
-            tempo_inicio_bloqueio = agora
-            alerta_emitido = False
+    def verificar_micro_parada(self, agora):
+        """
+        Emite um único alerta quando o bloqueio permanece
+        por cinco segundos ou mais.
+        """
 
         tempo_bloqueado = ticks_diff(
             agora,
-            tempo_inicio_bloqueio
+            self.tempo_inicio_bloqueio
         )
 
         if (
             tempo_bloqueado >= TEMPO_MICRO_PARADA_MS
-            and not alerta_emitido
+            and not self.alerta_emitido
         ):
             print("Alerta: Micro-parada detectada!")
-            alerta_emitido = True
+            self.alerta_emitido = True
 
-    elif valor_ldr < LIMITE_LIVRE and sensor_bloqueado:
+    def registrar_peca(self):
+        """
+        Conta uma peça quando o sensor retorna ao estado livre.
+        """
 
-        contador += 1
+        self.contador_pecas += 1
 
-        sensor_bloqueado = False
-        tempo_inicio_bloqueio = 0
-        alerta_emitido = False
+        self.estado_sensor = ESTADO_SENSOR_LIVRE
+        self.tempo_inicio_bloqueio = 0
+        self.alerta_emitido = False
 
-        print("Peca detectada! Total:", contador)
-
-    # -----------------------------------------------------
-    # Cenário 3: reset manual
-    # -----------------------------------------------------
-
-    # Detecta quando o botão foi pressionado
-    if estado_botao == 0 and not botao_foi_pressionado:
-        botao_foi_pressionado = True
-        tempo_pressao_botao = agora
-
-    # Executa o reset quando o botão for solto
-    elif estado_botao == 1 and botao_foi_pressionado:
-
-        tempo_pressionado = ticks_diff(
-            agora,
-            tempo_pressao_botao
+        print(
+            "Peca detectada! Total:",
+            self.contador_pecas
         )
 
-        # Ignora ruídos ou toques muito rápidos
-        if tempo_pressionado >= TEMPO_DEBOUNCE_MS:
+    def processar_sensor(self, agora):
+        """
+        Interpreta a leitura do LDR utilizando dois limites.
 
-            contador = 0
+        Os dois limites criam uma histerese:
+        - acima de LIMITE_BLOQUEADO: sensor bloqueado;
+        - abaixo de LIMITE_LIVRE: sensor livre.
 
-            sensor_bloqueado = False
-            tempo_inicio_bloqueio = 0
-            alerta_emitido = False
+        Leituras entre os limites preservam o estado anterior,
+        evitando oscilações e falsas contagens.
+        """
 
-            print(
-                "Turno resetado com sucesso. Contadores zerados."
+        valor_ldr = self.sensor_ldr.read()
+
+        if valor_ldr > LIMITE_BLOQUEADO:
+            if self.estado_sensor == ESTADO_SENSOR_LIVRE:
+                self.iniciar_bloqueio(agora)
+
+            self.verificar_micro_parada(agora)
+
+        elif (
+            valor_ldr < LIMITE_LIVRE
+            and self.estado_sensor == ESTADO_SENSOR_BLOQUEADO
+        ):
+            self.registrar_peca()
+
+    def resetar_turno(self):
+        """
+        Zera a contagem e restaura todos os estados internos.
+        """
+
+        self.contador_pecas = 0
+
+        self.estado_sensor = ESTADO_SENSOR_LIVRE
+        self.tempo_inicio_bloqueio = 0
+        self.alerta_emitido = False
+
+        print(
+            "Turno resetado com sucesso. Contadores zerados."
+        )
+
+    def processar_botao(self, agora):
+        """
+        Identifica um ciclo completo de pressionar e soltar o botão.
+
+        O tempo mínimo evita resets causados por ruído elétrico
+        ou por alterações muito rápidas no sinal.
+        """
+
+        estado_botao = self.botao.value()
+
+        if (
+            estado_botao == 0
+            and not self.botao_foi_pressionado
+        ):
+            self.botao_foi_pressionado = True
+            self.tempo_pressao_botao = agora
+
+        elif (
+            estado_botao == 1
+            and self.botao_foi_pressionado
+        ):
+            tempo_pressionado = ticks_diff(
+                agora,
+                self.tempo_pressao_botao
             )
 
-        botao_foi_pressionado = False
+            if tempo_pressionado >= TEMPO_DEBOUNCE_MS:
+                self.resetar_turno()
 
-    sleep_ms(20)
+            self.botao_foi_pressionado = False
+            self.tempo_pressao_botao = 0
+
+    def executar(self):
+        """
+        Executa continuamente o monitoramento da produção.
+        """
+
+        print("Contador de Producao Inicializado")
+
+        while True:
+            agora = ticks_ms()
+
+            self.processar_sensor(agora)
+            self.processar_botao(agora)
+
+            sleep_ms(INTERVALO_LOOP_MS)
+
+
+# ---------------------------------------------------------
+# Inicialização
+# ---------------------------------------------------------
+
+monitor = MonitorProducao(
+    sensor_ldr=ldr,
+    botao=botao_reset
+)
+
+monitor.executar()
