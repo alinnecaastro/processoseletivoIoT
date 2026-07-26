@@ -1,4 +1,8 @@
-Visão Geral da Solução
+Identificação do Candidato
+Nome completo: Alinne de Souza Santos Castro
+GitHub: alinnecaastro
+
+## Visão Geral da Solução
 
 Este projeto simula um sistema embarcado para monitoramento de uma linha de produção utilizando um ESP32 no Wokwi. O sistema conta peças, detecta micro-paradas por meio de um sensor de luminosidade (LDR) e permite o reset manual do turno através de um botão. A interação do usuário é feita alterando a luminosidade do sensor e acionando o botão de reset, com todas as informações exibidas no monitor serial.
 
@@ -31,12 +35,12 @@ O código foi organizado com constantes no início, facilitando a alteração de
 
 A temporização foi feita com `ticks_ms()` e `ticks_diff()`, permitindo medir o tempo de bloqueio do sensor sem interromper o funcionamento do programa. Para o botão, foi aplicado um controle simples de debounce, evitando múltiplos resets causados por uma única pressão.
 
-Resultados Obtidos
+## Resultados Obtidos
 
 O sistema funcionou corretamente durante a simulação no Wokwi, realizando a contagem de peças por meio do sensor LDR, detectando micro-paradas quando o sensor permaneceu bloqueado por mais de cinco segundos e executando o reset do turno através do botão.
 
 Todos os requisitos propostos foram atendidos, incluindo os três cenários de teste automatizados. As simulações apresentaram o comportamento esperado, com as mensagens sendo exibidas corretamente no monitor serial e todos os testes da GitHub Actions concluídos com sucesso.
 
-Comentários Adicionais
+## Comentários Adicionais
 
 Durante o desenvolvimento, a principal dificuldade foi compreender o funcionamento da simulação no Wokwi e ajustar o código para atender corretamente aos testes automatizados. Também foi necessário validar os valores do sensor de luminosidade para garantir o comportamento esperado.
