@@ -2,7 +2,7 @@ Identificação do Candidato
 
 Nome completo: Alinne de Souza Santos Castro
 
-GitHub: alinnecaastro  
+GitHub: @alinnecaastro  
 
 Link: https://github.com/alinnecaastro/processoseletivoIoT.git
 
